@@ -53,8 +53,9 @@ class gen {
 $time_start = microtime(true);
 $sleep = 500;
 
+// TODO: should only take 1s but it took 1.3s
 $task1 = new gen(f1(300, 1, 2));
-$task3 = new gen(f1(1500, 30, 40, 2));
+$task3 = new gen(f1(2500, 30, 40, 2));
 $task2 = new gen(f1(200, 3, 4));
 
 $r1    = $task1->get();

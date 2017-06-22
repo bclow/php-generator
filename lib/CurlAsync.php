@@ -58,6 +58,7 @@ class CurlAsync {
         $this->curl[$name]  = $curl;
         curl_setopt($curl, CURLOPT_RETURNTRANSFER,      true);
         if($timeout !== null) {
+            trigger_error("submit timeout {$timeout} for $name");
             curl_setopt($curl, CURLOPT_TIMEOUT,         $timeout);
         }
 
