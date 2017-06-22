@@ -2,8 +2,7 @@
 include_once(__DIR__.'/../lib/CurlAsync.php');
 
 function getMCURL() {
-    //static $mcurl  = null;
-    $mcurl  = null;
+    static $mcurl  = null;
     if($mcurl == null) {
         $mcurl = new CurlAsync();
     }
@@ -17,15 +16,22 @@ function buildUrl($sleep, $x, $y) {
     return $url;
 }
 
-function f1($sleep, $key, $a, $b) : Generator {
+function f1($sleep, $a, $b, $timeout=1) : Generator {
     $url    = buildUrl($sleep, $a, $b);
     $mcurl  = getMCURL();
-    $mcurl->$key($url);
-    $val    = yield ;
 
-    $res    = $mcurl->$key();
-    $obj    = json_decode($res);
-    yield $obj->res;
+    $future = $mcurl->submitURL(buildUrl($sleep, $a, $b), $timeout);
+
+    yield;
+
+    $res    = $future->get();
+    if($res) {
+        $obj    = json_decode($res);
+        yield $obj->res;
+    } else {
+        yield null;
+    }
+
 }
 
 
@@ -37,25 +43,36 @@ class gen {
         $this->gen->current();
     }
 
-    public function wait() : int{
+    public function get() {
         $res        = $this->gen->send(null);
         return $res;
     }
 }
 
 
+$time_start = microtime(true);
 $sleep = 500;
 
-$task1 = new gen(f1(500, "g1", 1, 2));
-$task2 = new gen(f1(400, "g2", 3, 4));
-$task3 = new gen(f1(700, "g3", 30, 40));
+$task1 = new gen(f1(300, 1, 2));
+$task3 = new gen(f1(1500, 30, 40, 2));
+$task2 = new gen(f1(200, 3, 4));
 
-$r1    = $task1->wait();
-$r2    = $task2->wait();
-$r3    = $task3->wait();
+$r1    = $task1->get();
+$r2    = $task2->get();
+$r3    = $task3->get();
+$time_end = microtime(true);
 
-echo $r1, "\t", $r2, "\t", $r3, "\n";
+if($r1) {
+    echo "r1:$r1\n";
+}
+if($r2) {
+    echo "r2:$r2\n";
+}
+if($r3) {
+    echo "r3:$r3\n";
+}
 
+echo "usage : ", ($time_end-$time_start)*1000, "\n";
 
 
 /*
