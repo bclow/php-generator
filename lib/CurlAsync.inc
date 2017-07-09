@@ -1,10 +1,26 @@
 <?php
 
-class FutureCurl {
+class FunctionGenerator {
+    protected $gen;
+
+    public function __construct($gen) {
+        $this->gen = $gen;
+        $this->gen->current();
+    }
+
+    public function get() {
+        $res        = $this->gen->send(null);
+        return $res;
+    }
+}
+
+
+
+
+class FutureCurlAsync {
     protected $name;
     protected $curlAsync;
 
-    // TODO(bclow): support time-out
     public function __construct($name, $curlAsync) {
         $this->name         = $name;
         $this->curlAsync    = $curlAsync;
@@ -33,25 +49,35 @@ class CurlAsync {
 
     protected $id   = 0;
 	
+    // singleton 
+	public static function getInstance() {
+		static $mcurl  = null;
+		if($mcurl == null) {
+			$mcurl = new CurlAsync();
+		}   
+
+		return $mcurl;
+	}
+
 	/** Initialize CURL
 	*/
-	function __construct() {
+	protected function __construct() {
 		$this->multi    = curl_multi_init();
 	}
 	
 	/** Close CURL
 	*/
-	function __destruct() {
+	public function __destruct() {
 		curl_multi_close($this->multi);
 	}
 
-    function getID() {
+    public function getID() {
         $curId          = $this->id;
         ++$this->id;
         return "mcurl_{$curId}";
     }
 	
-    function submitURL($url, $timeout=null, $proxy=null) {
+    public function submitURL($url, $timeout=null, $proxy=null) {
         $name               = $this->getID();
 
         $curl               = curl_init($url);
@@ -62,7 +88,7 @@ class CurlAsync {
             curl_setopt($curl, CURLOPT_TIMEOUT,         $timeout);
         }
 
-        curl_setopt($curl, CURLOPT_USERAGENT,           'Mozilla/5.0 (compatible; Feebeebot/1.0; +http://feebee.com.tw)');
+        curl_setopt($curl, CURLOPT_USERAGENT,           'Mozilla/5.0 (compatible; FBAsync/1.0');
         curl_setopt($curl, CURLOPT_HTTPHEADER,          ['Connection: close']);
 
         curl_setopt($curl, CURLOPT_FOLLOWLOCATION,      1);
@@ -76,10 +102,10 @@ class CurlAsync {
         $return             = curl_multi_add_handle($this->multi, $curl);
         while (curl_multi_exec($this->multi, $running) == CURLM_CALL_MULTI_PERFORM) ;  
 
-        return new FutureCurl($name, $this);
+        return new FutureCurlAsync($name, $this);
     }
 
-    function getResponse($name) {
+    public function getResponse($name) {
 		// get response
 		if (!isset($this->curl[$name])) { // wrong identifier
 			return false;
